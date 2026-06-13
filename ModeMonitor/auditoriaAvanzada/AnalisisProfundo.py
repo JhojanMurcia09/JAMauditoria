@@ -133,7 +133,7 @@ def formatear_reporte_legible(archivo_nmap, archivo_salida, tipo_red, segmento):
     reporte_formateado.append("=" * 80)
 
     # Escribir el informe legible final
-    with open(archivo_output_limpio, 'w', encoding='utf-8') as out:
+    with open(archivo_salida, 'w', encoding='utf-8') as out:
         out.write("\n".join(reporte_formateado))
 
 def ejecutar_auditoria_completa(segmento, tipo_red, dir_reportes):

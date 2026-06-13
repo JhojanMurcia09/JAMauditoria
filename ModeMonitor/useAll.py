@@ -66,11 +66,12 @@ def main():
         print(" [2] Lanzar Módulo: Activador / Desactivador de Modo Monitor")
         print(" [3] Lanzar Módulo: Zona Wi-Fi, Auditoría y Control de Clientes")
         print(" [4] Lanzar Módulo: Auditoría Avanzada (OS, Versiones y Fallos CVE)")
-        print(" [5] Salir de la Suite Completa")
+        print(" [5] Lanzar Módulo: Escáner de Redes en Tiempo Real (Modo Monitor)")
+        print(" [6] Salir de la Suite Completa")
         print("="*68)
-        
-        opcion = input("Selecciona el entorno de trabajo (1-5): ").strip()
-        
+
+        opcion = input("Selecciona el entorno de trabajo (1-6): ").strip()
+
         if opcion == "1":
             ejecutar_script_hijo("Instalame.py")
         elif opcion == "2":
@@ -78,13 +79,14 @@ def main():
         elif opcion == "3":
             ejecutar_script_hijo("ZonaWifi/CrearCobertura.py")
         elif opcion == "4":
-            # Conexión con el nuevo ecosistema de análisis profundo
             ejecutar_script_hijo("auditoriaAvanzada/AnalisisProfundo.py")
         elif opcion == "5":
+            ejecutar_script_hijo("EscaneoEnVivo/MonitorEnTiempoReal.py")
+        elif opcion == "6":
             print("\n[*] Desconectando suite JAM. ¡Buenas auditorías!")
             break
         else:
-            print("[-] Selección inválida. Por favor, digita un número entre 1 y 5.")
+            print("[-] Selección inválida. Por favor, digita un número entre 1 y 6.")
             time.sleep(1.5)
 
 if __name__ == "__main__":

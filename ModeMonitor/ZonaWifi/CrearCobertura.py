@@ -50,15 +50,15 @@ def autodeteccion_interfaz_ap(iface_internet):
     """Identifica automáticamente una tarjeta Wi-Fi disponible que no sea la que da Internet."""
     tarjetas = escanear_tarjetas()
     tarjetas_disponibles = [t["interfaz"] for t in tarjetas if t["interfaz"] != iface_internet]
-    
+
     if not tarjetas_disponibles:
         return None
-    
+
     if len(tarjetas_disponibles) == 1:
         print(f"[+] Interfaz de emisión seleccionada automáticamente: '{tarjetas_disponibles[0]}'")
         time.sleep(1)
         return tarjetas_disponibles[0]
-    
+
     print(f"\n[*] Interfaces inalámbricas alternativas detectadas ({len(tarjetas_disponibles)}):")
     for i, iface in enumerate(tarjetas_disponibles, 1):
         print(f"  [{i}] {iface}")
@@ -79,10 +79,10 @@ def levantar_infraestructura(ssid, interfaz_ap, interfaz_internet):
     global proceso_hostapd, proceso_dnsmasq, interfaz_ap_activa, interfaz_internet_activa
     interfaz_ap_activa = interfaz_ap
     interfaz_internet_activa = interfaz_internet
-    
+
     print(f"\n[+] Pasando '{interfaz_ap}' a modo no-gestionado en NetworkManager para evitar caídas...")
     subprocess.run(["nmcli", "device", "set", interfaz_ap, "managed", "no"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    
+
     print("[*] Mitigando colisiones previas de wpa_supplicant...")
     subprocess.run(["killall", "wpa_supplicant"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(0.5)
@@ -127,11 +127,11 @@ log-dhcp
     print(f"[*] Creando puente de red: [{interfaz_ap}] ---> Enrutando hacia Internet por: [{interfaz_internet}]...")
     with open("/proc/sys/net/ipv4/ip_forward", "w") as f:
         f.write("1")
-    
+
     # Limpieza preventiva de iptables para evitar colisiones
     subprocess.run(["iptables", "-F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     subprocess.run(["iptables", "-t", "nat", "-F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    
+
     # Inyección de cadenas de enmascaramiento de paquetes (Masquerade)
     subprocess.run(["iptables", "-A", "FORWARD", "-i", interfaz_ap, "-o", interfaz_internet, "-j", "ACCEPT"])
     subprocess.run(["iptables", "-A", "FORWARD", "-i", interfaz_internet, "-o", interfaz_ap, "-m", "state", "--state", "ESTABLISHED,RELATED", "-j", "ACCEPT"])
@@ -150,7 +150,7 @@ log-dhcp
     if os.path.exists(ruta_log_dns):
         os.remove(ruta_log_dns)
     f_log = open(ruta_log_dns, "w")
-    
+
     proceso_dnsmasq = subprocess.Popen(cmd_dnsmasq, stdout=f_log, stderr=f_log)
     print("[+] Entorno operativo desplegado. Monitoreo listo.")
     time.sleep(1)
@@ -159,19 +159,19 @@ def apagar_infraestructura():
     """Apaga los procesos de red, limpia las reglas de iptables y devuelve el hardware al sistema."""
     global proceso_hostapd, proceso_dnsmasq, interfaz_ap_activa
     print("\n[*] Desactivando cobertura inalámbrica y limpiando el sistema...")
-    
+
     if proceso_dnsmasq:
         proceso_dnsmasq.terminate()
     if proceso_hostapd:
         proceso_hostapd.terminate()
-        
+
     subprocess.run(["killall", "dnsmasq"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     subprocess.run(["killall", "hostapd"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    
+
     print("[*] Removiendo reglas de enrutamiento y vaciando iptables...")
     subprocess.run(["iptables", "-F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     subprocess.run(["iptables", "-t", "nat", "-F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    
+
     if interfaz_ap_activa:
         subprocess.run(["ip", "link", "set", interfaz_ap_activa, "down"])
         subprocess.run(["ip", "addr", "flush", "dev", interfaz_ap_activa])
@@ -179,7 +179,7 @@ def apagar_infraestructura():
         subprocess.run(["nmcli", "device", "set", interfaz_ap_activa, "managed", "yes"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["systemctl", "restart", "NetworkManager"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         interfaz_ap_activa = None
-        
+
     print("[+] Configuración original del sistema restaurada con éxito.")
     input("\nPresione [Enter] para continuar...")
 
@@ -189,15 +189,15 @@ def mostrar_ips_conectadas():
     print("         DISPOSITIVOS CONECTADOS ACTIVAMENTE (CONCESIONES DHCP)")
     print("-"*75)
     ruta_leases = "/var/lib/misc/dnsmasq.leases"
-    
+
     if not os.path.exists(ruta_leases) or os.path.getsize(ruta_leases) == 0:
         print("[*] No se registran clientes asociados o solicitando IP en este momento.")
         return []
-        
+
     clientes = []
     with open(ruta_leases, "r") as f:
         lineas = f.readlines()
-        
+
     print(f"{'MAC ADDRESS':<20} {'IP ADDRESS':<18} {'NOMBRE DEL DISPOSITIVO':<25}")
     print("-" * 75)
     for linea in lineas:
@@ -214,11 +214,11 @@ def escanear_perfil_cliente():
     if not clientes:
         input("\nPresione [Enter] para continuar...")
         return
-        
+
     target_ip = input("\nIntroduce la dirección IP del cliente a perfilar: ").strip()
     if not target_ip:
         return
-        
+
     print(f"\n[*] Ejecutando reconocimiento de puertos y servicios sobre {target_ip}...")
     try:
         # Analiza los puertos más comunes de forma optimizada y legible
@@ -235,27 +235,46 @@ def monitorear_consultas_dns():
     """Muestra en flujo continuo las peticiones de dominios que realizan los clientes."""
     print("\n" + "="*70)
     print("      MONITOR DE FLUJO DE TRÁFICO Y SOLICITUDES DNS EN TIEMPO REAL")
-    print("      (Presione [Ctrl + C] en cualquier momento para regresar al menú)")
     print("="*70)
     ruta_log_dns = "/tmp/dns_queries.log"
-    
+
     if not os.path.exists(ruta_log_dns):
         print("[-] El archivo de volcado de peticiones no se encuentra inicializado aún.")
         input("\nPresione [Enter] para continuar...")
         return
 
-    try:
-        with open(ruta_log_dns, "r") as f:
-            f.seek(0, 2) # Ubica el puntero al final del archivo para leer en vivo
-            while True:
-                linea = f.readline()
-                if not linea:
-                    time.sleep(0.4)
-                    continue
-                if "query[" in linea:
-                    print(f"[TRÁFICO EN VIVO] {linea.strip()}")
-    except KeyboardInterrupt:
-        print("\n[*] Monitoreo en vivo finalizado por el operador.")
+    print("\n [1] Ver tráfico en la consola actual (Ctrl+C para salir)")
+    print(" [2] Abrir tráfico en una ventana independiente (Xterm)")
+
+    opc = input("\nSelecciona el modo de visualización: ").strip()
+
+    if opc == "2":
+        print("[*] Lanzando monitor de DNS en ventana flotante...")
+        # Comando para leer el archivo en tiempo real usando 'tail -f'
+        comando_xterm = ["xterm", "-geometry", "90x20", "-title", "JAM - DNS LIVE TRAFFIC", "-e", "sh", "-c", f"tail -f {ruta_log_dns}; read"]
+
+        try:
+            subprocess.Popen(comando_xterm, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print("[+] Ventana de monitoreo DNS desplegada.")
+        except Exception as e:
+            print(f"[-] No se pudo inicializar xterm: {e}")
+        return
+
+    if opc == "1":
+        try:
+            with open(ruta_log_dns, "r") as f:
+                f.seek(0, 2) # Ubica el puntero al final del archivo para leer en vivo
+                while True:
+                    linea = f.readline()
+                    if not linea:
+                        time.sleep(0.4)
+                        continue
+                    if "query[" in linea:
+                        print(f"[TRÁFICO EN VIVO] {linea.strip()}")
+        except KeyboardInterrupt:
+            print("\n[*] Monitoreo en vivo finalizado por el operador.")
+    else:
+        print("[-] Opción inválida.")
 
 def menu_gestion_cobertura():
     """Panel de administración una vez la red está en línea."""
@@ -269,9 +288,9 @@ def menu_gestion_cobertura():
         print(" [3] Monitorear Tráfico y Consultas DNS de Clientes (Tiempo Real)")
         print(" [4] Desactivar Cobertura Inalámbrica y Salir al Menú Principal")
         print("="*70)
-        
+
         opc = input("Selecciona una opción (1-4): ").strip()
-        
+
         if opc == "1":
             mostrar_ips_conectadas()
             input("\nPresione [Enter] para continuar...")
@@ -286,18 +305,18 @@ def menu_gestion_cobertura():
 def main():
     verificar_root()
     comprobar_herramientas()
-    
+
     logo_jam = """
-         .---.        ____     _       _       _ 
+         .---.        ____     _       _       _
         /     \\      |____ |  / \\     | \\     / |
        |  ___  |         | | / _ \\    |  \\   /  |
        | /   \\ |         | |/ /_\\ \\   |   \\_/   |
        | | U | |     ___ | / ___   \\  | |\\_/| | |
        | \\___/ |    |____|/_/     \\_\\ |_|   |_|
-        \\     /     
+        \\     /
          `---'       [ JAM - COBERTURA UNIFICADA ]
     """
-    
+
     while True:
         os.system('clear')
         print(logo_jam)
@@ -305,32 +324,32 @@ def main():
         print(" [1] Clonar Entorno Inalámbrico Visible con Tráfico de Datos Activo")
         print(" [2] Salir de la Suite")
         print("="*70)
-        
+
         opcion = input("Selecciona una opción (1-2): ").strip()
-        
+
         if opcion == "1":
             print("\n[*] Mapeo rápido de interfaces activas de la máquina:")
             subprocess.run(["ip", "-br", "addr", "show"])
-            
+
             if_internet = input("\nIntroduce la interfaz que provee Internet a tu PC (ej. wlo1): ").strip()
             if not if_internet:
                 continue
-                
+
             ssid = input("Introduce el nombre del SSID que vas a clonar (ej. LUKA): ").strip()
             if not ssid:
                 continue
-                
-            # Autodetección inteligente buscando una tarjeta de red inalámbrica libre (tu antena USB)
+
+            # Autodeteccion inteligente buscando una tarjeta de red inalámbrica libre (tu antena USB)
             if_ap = autodeteccion_interfaz_ap(if_internet)
             if not if_ap:
                 print("\n[!] Error: No se encontraron tarjetas Wi-Fi secundarias libres.")
                 print("[*] Asegúrate de contar con una antena adicional o estar por cable de red.")
                 input("\nPresione [Enter] para continuar...")
                 continue
-                
+
             print(f"\n[+] Configuración aprobada: Emisión por [{if_ap}] | Enrutamiento vía [{if_internet}]")
             time.sleep(1.5)
-            
+
             levantar_infraestructura(ssid, if_ap, if_internet)
             menu_gestion_cobertura()
         elif opcion == "2":
