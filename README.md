@@ -31,7 +31,7 @@ El uso de este software para interceptar comunicaciones o acceder a redes sin co
 ## Instalación
 
 ```bash
-git clone [https://github.com/tu-usuario/JAM.git](https://github.com/tu-usuario/JAM.git)
-cd JAM
+git clone https://github.com/JhojanMurcia09/JAMauditoria.git
+cd JAMauditoria
 sudo apt update && sudo apt install hostapd dnsmasq xterm nmap iptables network-manager
 sudo python3 suite_jam.py
